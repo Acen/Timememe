@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Document</title>
+        <link href="dist/app.css" type="text/css" rel="stylesheet">
+    </head>
+    <body class="uk-background-secondary">
+        <div class="uk-section">
+            <div class="uk-container uk-text-center">
+                <div class="uk-grid-small uk-child-width-auto uk-flex-center uk-light" uk-grid>
+                    <div class="uk-first-column">
+                        <div class="uk-countdown-number" id="timer-hour">06</div>
+                        <div class="uk-countdown-label uk-margin-small uk-text-center uk-visible@s">Hours</div>
+                    </div>
+                    <div class="uk-countdown-separator">:</div>
+                    <div>
+                        <div class="uk-countdown-number" id="timer-minute">23</div>
+                        <div class="uk-margin-small uk-text-center uk-visible@s">Minutes</div>
+                    </div>
+                    <div class="uk-countdown-separator">:</div>
+                    <div>
+                        <div class="uk-countdown-number" id="timer-second">59</div>
+                        <div class="uk-margin-small uk-text-center uk-visible@s">Seconds</div>
+                    </div>
+                    <div class="uk-countdown-separator" id="timer-dropframe">:</div>
+                    <div>
+                        <div class="uk-countdown-number" id="timer-frame">40</div>
+                        <div class="uk-margin-small uk-text-center uk-visible@s">Frames</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="uk-section uk-section-default uk-text-center">
+            <div class="uk-container uk-container-expand uk-dark">
+                <progress class="uk-progress" value="10" max="100"></progress>
+            </div>
+        </div>
+        <div class="uk-container uk-container-expand uk-light" uk-height-viewport="expand: true">
+            <p>blah</p>
+            <div class="uk-section-muted"></div>
+        </div>
+        <script src="dist/app.js"></script>
+    </body>
+</html>
