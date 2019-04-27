@@ -9,7 +9,11 @@ UIkit.use(Icons);
 /**
  * @type {WebSocket}
  */
-window.sock = new WebSocket('ws://' + window.location.hostname +':800');
+if(window.location.hostname) {
+    window.sock = new WebSocket('ws://' + window.location.hostname + ':800');
+}else{
+    window.sock = new WebSocket('ws://127.0.0.1:800');
+}
 init();
 window.sock.onmessage = handleMessage;
 window.sock.onerror = reload;
