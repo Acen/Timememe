@@ -1,16 +1,18 @@
 import UIkit from 'uikit';
 import Icons from 'uikit/dist/js/uikit-icons';
-import {split} from 'lodash';
+import { split, padStart } from 'lodash';
 import Timecode from 'timecode-boss';
 import Heartbeats from 'heartbeats';
-UIkit.use(Icons);
+import MSToTimecode from 'ms-to-timecode';
 
-try {
-    let sock = new WebSocket('ws://192.168.1.21:800');
-    sock.onmessage = handleMessage;
-}catch (error){
-    location.reload();
-}
+UIkit.use(Icons);
+/**
+ * @type {WebSocket}
+ */
+window.sock = new WebSocket('ws://' + window.location.hostname +':800');
+init();
+window.sock.onmessage = handleMessage;
+window.sock.onerror = reload;
 
 /**
  * @type {boolean}
@@ -20,27 +22,71 @@ let initialized = false;
  * @type {Timecode}
  */
 let current;
-
+/**
+ * @type {number}
+ */
+let currentMS;
+/**
+ * @type {number}
+ */
+let currentFPS;
+/**
+ * @type {number}
+ */
+let currentOffset;
+/**
+ * @type {number}
+ */
+let currentDuration;
 /**
  * @type {Heart}
  */
-let heart = Heartbeats.createHeart('5');
+let heart;
+/**
+ * @type {string}
+ */
+const EVENT_NAME = 'timer';
+/**
+ * @type {string}
+ */
+const PROGRESS_EVENT_NAME = 'progress_timer';
+/**
+ * @type {number}
+ */
+const CLOCK_HEARTRATE = 10;
+
+/**
+ * Creates the heart.
+ * Checks websocket is still open every OPEN_WEBSOCKET_CHECK, HEARTRATE.
+ */
+function init(){
+    heart = Heartbeats.createHeart(CLOCK_HEARTRATE);
+}
+
+
 /**
  * Handles the message from the websocket.
  *
  * @param messageEvent {MessageEvent}
  */
-function handleMessage(messageEvent){
-    const messageObject = parseMessage(messageEvent.data);
-    if(!initialized){
-        current = new Timecode(messageObject.currentMS, messageObject.currentFPS);
+function handleMessage( messageEvent ) {
+    let messageObject = parseMessage(messageEvent.data);
+    setData(messageObject);
+    currentOffset = messageObject.currentOffset || 0;
+    currentDuration = messageObject.currentDuration;
+    currentMS = messageObject.currentMS;
+    currentFPS = messageObject.currentFPS;
+    if ( !initialized ) {
+        current = new Timecode(MSToTimecode(currentMS + currentOffset, currentFPS), currentFPS);
+        initialized = true;
+    } else {
+        current = current.set(MSToTimecode(currentMS + currentOffset, currentFPS));
     }
-    current = Timecode(messageObject.currentMS, messageObject.currentFPS);
+    setClock(current);
     try {
-        handleState(messageObject.state)
-    } catch(error){
-        console.error(error);
-        haltClock();
+        handleState(messageObject.state);
+    } catch ( error ) {
+        reload();
     }
 }
 
@@ -50,17 +96,17 @@ function handleMessage(messageEvent){
  * @param messageData {string}
  * @returns {{currentOffset: number, currentFPS: number, currentDuration: number, currentVolume: number, currentFade: number, state: number, currentMS: number, cueNumber: number}}
  */
-function parseMessage(messageData){
+function parseMessage( messageData ) {
     const messageArray = split(messageData, ',');
     return {
-        state: parseInt(messageArray[0]),
-        cueNumber: parseInt(messageArray[1]),
-        currentMS: parseInt(messageArray[2]),
+        state          : parseInt(messageArray[0]),
+        cueNumber      : parseInt(messageArray[1]),
+        currentMS      : parseInt(messageArray[2]),
         currentDuration: parseInt(messageArray[3]),
-        currentOffset: parseInt(messageArray[4]),
-        currentFPS: parseFloat(messageArray[5]),
-        currentVolume: parseInt(messageArray[6]),
-        currentFade: parseInt(messageArray[7]),
+        currentOffset  : parseInt(messageArray[4]),
+        currentFPS     : parseFloat(messageArray[5]),
+        currentVolume  : parseInt(messageArray[6]),
+        currentFade    : parseInt(messageArray[7]),
     };
 }
 
@@ -69,69 +115,87 @@ function parseMessage(messageData){
  *
  * @param state {number}
  */
-function handleState(state){
-    switch(state){
+function handleState( state ) {
+    switch ( state ) {
         case 0:
             // Error.
             throw new Error('Invalid state returned from websocket.');
         case 1:
+        case 3:
         case 4:
             // Stopped.
+            // Paused.
             // Queued.
-            haltClock();
+            heart.destroy();
+            init();
             break;
         case 2:
             // Playing.
             syncClock();
             break;
-        case 3:
-            // Paused.
-            pauseClock();
-            break;
         case 255:
-            // Page Reload Necessary.
-            location.reload();
-            break;
         default:
-            // Apparently shouldn't be hit.
-            haltClock();
+            // Page Reload Necessary.
+            reload();
             break;
     }
 }
 
-function haltClock(){
-    // Kill Clock.
-    setClock(current);
-
-}
-
-function syncClock(){
+function syncClock() {
     // Set Clock
     startTimer();
-    setClock(current)
+    setClock(current);
 }
 
-function pauseClock(){
+function startTimer() {
+    heart.createEvent(1, {name: EVENT_NAME}, interval);
+    heart.createEvent(10, {name: PROGRESS_EVENT_NAME}, progressInterval);
+}
+
+function interval(){
+    currentMS = currentMS + CLOCK_HEARTRATE;
+    current.set(MSToTimecode(currentMS + currentOffset, currentFPS));
+    setClock(current);
+}
+function progressInterval(){
+    setProgress(currentMS, currentDuration);
 
 }
 
-function startTimer(){
-heart.ev
-
+function reload(){
+    location.reload();
 }
+
 
 /**
  * Sets the clock onto the HTML
  * @param timecode {Timecode}
  */
-function setClock(timecode){
-    document.getElementById('timer-hour').innerText = timecode.hours;
-    document.getElementById('timer-minute').innerText = timecode.minutes;
-    document.getElementById('timer-second').innerText = timecode.seconds;
-    document.getElementById('timer-frame').innerText = timecode.frames;
-    if(timecode.isDropFrame()){
+function setClock( timecode ) {
+    document.getElementById('timer-hour').innerText = padStart(timecode.hours, 2,'0');
+    document.getElementById('timer-minute').innerText = padStart(timecode.minutes, 2,'0');
+    document.getElementById('timer-second').innerText = padStart(timecode.seconds, 2,'0');
+    document.getElementById('timer-frame').innerText = padStart(timecode.frames, 2,'0');
+    if ( timecode.isDropFrame() ) {
         document.getElementById('timer-dropframe').innerText = ';';
-    }else{
+    } else {
         document.getElementById('timer-dropframe').innerText = ':';
     }
+}
+
+/**
+ *
+ * @param data {object}
+ */
+function setData( data ) {
+    document.getElementById('data-fps').innerText = data.currentFPS;
+    document.getElementById('data-offset').innerText = MSToTimecode(data.currentOffset, data.currentFPS);
+    document.getElementById('data-duration').innerText = MSToTimecode(data.currentDuration, data.currentFPS);
+    document.getElementById('data-progress')
+}
+
+function setProgress(currentTimer, trackDuration){
+    let progressBar = document.getElementById('data-progress');
+    progressBar.value = currentTimer;
+    progressBar.max = trackDuration;
 }

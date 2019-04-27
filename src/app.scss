@@ -2,3 +2,9 @@
 @import "~uikit/src/scss/mixins-theme.scss";
 
 @import "~uikit/src/scss/uikit-theme.scss";
+
+.uk-light{
+  .uk-countdown-label, .uk-countdown-number, .uk-countdown-separator{
+    color: #fff;
+  }
+}

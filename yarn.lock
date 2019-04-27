@@ -4056,6 +4056,11 @@ move-concurrently@^1.0.1:
     rimraf "^2.5.4"
     run-queue "^1.0.3"
 
+ms-to-timecode@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/ms-to-timecode/-/ms-to-timecode-0.1.2.tgz#1c68ce8adf3dbcc8096322c3d3f6fd434ee3c012"
+  integrity sha512-4KTLVumZXsLp6dxHp16xTnHAXhumA6vwPImeb++hgVgZC7SOOqMfvmCYvSeeSLPBlxdbYqDNDlXnrW9DNHYTbg==
+
 ms@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"

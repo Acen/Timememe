@@ -10,38 +10,61 @@
     </head>
     <body class="uk-background-secondary">
         <div class="uk-section">
-            <div class="uk-container uk-text-center">
+            <div class="uk-container">
                 <div class="uk-grid-small uk-child-width-auto uk-flex-center uk-light" uk-grid>
                     <div class="uk-first-column">
-                        <div class="uk-countdown-number" id="timer-hour">06</div>
+                        <div class="uk-countdown-number" id="timer-hour">00</div>
                         <div class="uk-countdown-label uk-margin-small uk-text-center uk-visible@s">Hours</div>
                     </div>
                     <div class="uk-countdown-separator">:</div>
                     <div>
-                        <div class="uk-countdown-number" id="timer-minute">23</div>
+                        <div class="uk-countdown-number" id="timer-minute">00</div>
                         <div class="uk-margin-small uk-text-center uk-visible@s">Minutes</div>
                     </div>
                     <div class="uk-countdown-separator">:</div>
                     <div>
-                        <div class="uk-countdown-number" id="timer-second">59</div>
+                        <div class="uk-countdown-number" id="timer-second">00</div>
                         <div class="uk-margin-small uk-text-center uk-visible@s">Seconds</div>
                     </div>
                     <div class="uk-countdown-separator" id="timer-dropframe">:</div>
                     <div>
-                        <div class="uk-countdown-number" id="timer-frame">40</div>
+                        <div class="uk-countdown-number" id="timer-frame">00</div>
                         <div class="uk-margin-small uk-text-center uk-visible@s">Frames</div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="uk-section uk-section-default uk-text-center">
-            <div class="uk-container uk-container-expand uk-dark">
-                <progress class="uk-progress" value="10" max="100"></progress>
+        <div class="uk-section uk-section-xsmall">
+            <div class="uk-container uk-container-small">
+                <div class="uk-grid-collapse uk-child-width-expand@s uk-text-center uk-light" uk-grid>
+                    <div>
+                        <div class="uk-card uk-card-small uk-card-body">
+                            <h3 class="uk-card-title">FPS</h3>
+                            <p id="data-fps">~</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="uk-card uk-card-small uk-card-body">
+                            <h3 class="uk-card-title">Offset</h3>
+                            <p id="data-offset">00:00:00:00</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="uk-card uk-card-small uk-card-body">
+                            <h3 class="uk-card-title">Duration</h3>
+                            <p id="data-duration">00:01:00:00</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="uk-section uk-text-center">
+            <div class="uk-container uk-container-expand uk-light">
+                <progress id="data-progress" class="uk-progress" value="0" max="100"></progress>
             </div>
         </div>
         <div class="uk-container uk-container-expand uk-light" uk-height-viewport="expand: true">
-            <p>blah</p>
-            <div class="uk-section-muted"></div>
         </div>
         <script src="dist/app.js"></script>
     </body>
