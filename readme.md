@@ -2,7 +2,7 @@
 
 This has been built to allow you to see the current status of Timecode coming out of Timelord.
 
-[[./img/timememe.png]]
+[Timememe](img/timememe.png)
 
 
 ### Task List
