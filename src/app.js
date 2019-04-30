@@ -1,6 +1,6 @@
 import UIkit from 'uikit';
 import Icons from 'uikit/dist/js/uikit-icons';
-import { split, padStart } from 'lodash';
+import { split, padStart, defaults, filter, array } from 'lodash';
 import Timecode from 'timecode-boss';
 import Heartbeats from 'heartbeats';
 import MSToTimecode from 'ms-to-timecode';
@@ -9,15 +9,7 @@ UIkit.use(Icons);
 /**
  * @type {WebSocket}
  */
-if(window.location.hostname) {
-    window.sock = new WebSocket('ws://' + window.location.hostname + ':800');
-}else{
-    window.sock = new WebSocket('ws://127.0.0.1:800');
-}
-init();
-window.sock.onmessage = handleMessage;
-window.sock.onerror = reload;
-
+let sock;
 /**
  * @type {boolean}
  */
@@ -58,15 +50,44 @@ const PROGRESS_EVENT_NAME = 'progress_timer';
  * @type {number}
  */
 const CLOCK_HEARTRATE = 10;
+/**
+ * @type {string}
+ */
+const TIMELORD_IP_KEY = "TIMELORD_IP";
+/**
+ * @type {string}
+ */
+const TIMELORD_PORT_KEY = "TIMELORD_PORT";
+/**
+ * @type {string}
+ */
+const REFRESH_KEY = "REFRESH";
+/**
+ * @type {string}
+ */
+const SETTINGS_KEY = "SETTINGS";
+/**
+ *
+ * @type {{REFRESH: boolean, TIMELORD_PORT: number}}
+ */
+const DEFAULTS = {
+    "TIMELORD_PORT": 800,
+    "REFRESH"      : false,
+    "TIMELORD_IP"  : "127.0.0.1",
+};
+init();
+// window.sock = sock = new WebSocket('ws://' + localStorage.getItem(TIMELORD_IP_KEY) + ':' + localStorage.getItem(TIMELORD_PORT_KEY));
+// window.sock.onmessage = handleMessage;
+// window.sock.onerror = reload;
 
 /**
  * Creates the heart.
  * Checks websocket is still open every OPEN_WEBSOCKET_CHECK, HEARTRATE.
  */
-function init(){
+function init() {
     heart = Heartbeats.createHeart(CLOCK_HEARTRATE);
+    setDefaults();
 }
-
 
 /**
  * Handles the message from the websocket.
@@ -76,10 +97,6 @@ function init(){
 function handleMessage( messageEvent ) {
     let messageObject = parseMessage(messageEvent.data);
     setData(messageObject);
-    currentOffset = messageObject.currentOffset || 0;
-    currentDuration = messageObject.currentDuration;
-    currentMS = messageObject.currentMS;
-    currentFPS = messageObject.currentFPS;
     if ( !initialized ) {
         current = new Timecode(MSToTimecode(currentMS + currentOffset, currentFPS), currentFPS);
         initialized = true;
@@ -102,7 +119,7 @@ function handleMessage( messageEvent ) {
  */
 function parseMessage( messageData ) {
     const messageArray = split(messageData, ',');
-    return {
+    const messageObject = {
         state          : parseInt(messageArray[0]),
         cueNumber      : parseInt(messageArray[1]),
         currentMS      : parseInt(messageArray[2]),
@@ -112,6 +129,12 @@ function parseMessage( messageData ) {
         currentVolume  : parseInt(messageArray[6]),
         currentFade    : parseInt(messageArray[7]),
     };
+    currentOffset = messageObject.currentOffset || 0;
+    currentDuration = messageObject.currentDuration;
+    currentMS = messageObject.currentMS;
+    currentFPS = messageObject.currentFPS;
+    return messageObject;
+
 }
 
 /**
@@ -156,30 +179,36 @@ function startTimer() {
     heart.createEvent(10, {name: PROGRESS_EVENT_NAME}, progressInterval);
 }
 
-function interval(){
+function interval() {
     currentMS = currentMS + CLOCK_HEARTRATE;
     current.set(MSToTimecode(currentMS + currentOffset, currentFPS));
     setClock(current);
 }
-function progressInterval(){
+
+function progressInterval() {
     setProgress(currentMS, currentDuration);
 
 }
 
-function reload(){
-    location.reload();
+/**
+ * Page reload
+ */
+function reload() {
+    const REFRESH = localStorage.getItem(REFRESH_KEY);
+    if ( REFRESH !== null && REFRESH === true ) {
+        location.reload();
+    }
 }
-
 
 /**
  * Sets the clock onto the HTML
  * @param timecode {Timecode}
  */
 function setClock( timecode ) {
-    document.getElementById('timer-hour').innerText = padStart(timecode.hours, 2,'0');
-    document.getElementById('timer-minute').innerText = padStart(timecode.minutes, 2,'0');
-    document.getElementById('timer-second').innerText = padStart(timecode.seconds, 2,'0');
-    document.getElementById('timer-frame').innerText = padStart(timecode.frames, 2,'0');
+    document.getElementById('timer-hour').innerText = padStart(timecode.hours, 2, '0');
+    document.getElementById('timer-minute').innerText = padStart(timecode.minutes, 2, '0');
+    document.getElementById('timer-second').innerText = padStart(timecode.seconds, 2, '0');
+    document.getElementById('timer-frame').innerText = padStart(timecode.frames, 2, '0');
     if ( timecode.isDropFrame() ) {
         document.getElementById('timer-dropframe').innerText = ';';
     } else {
@@ -195,11 +224,70 @@ function setData( data ) {
     document.getElementById('data-fps').innerText = data.currentFPS;
     document.getElementById('data-offset').innerText = MSToTimecode(data.currentOffset, data.currentFPS);
     document.getElementById('data-duration').innerText = MSToTimecode(data.currentDuration, data.currentFPS);
-    document.getElementById('data-progress')
 }
 
-function setProgress(currentTimer, trackDuration){
+/**
+ * @param currentTimer {number}
+ * @param trackDuration {number}
+ */
+function setProgress( currentTimer, trackDuration ) {
     let progressBar = document.getElementById('data-progress');
     progressBar.value = currentTimer;
     progressBar.max = trackDuration;
+}
+
+/**
+ * Sets default values.
+ */
+function setDefaults() {
+    let localSettings = defaults(filter({
+        "TIMELORD_IP": window.location.hostname
+    }),DEFAULTS);
+    for (const key in localSettings){
+        if(!hasSetting(key)){
+            saveSetting(key, localSettings[key]);
+        }
+    }
+    // if(!hasSetting(SETTINGS_KEY)){
+    //     saveSetting(SETTINGS_KEY, localSettings);
+    // }
+    refreshSettingDisplay();
+}
+
+/**
+ * @param key {string}
+ * @param value {string|number|boolean}
+ */
+function saveSetting( key, value ) {
+    // Local storage thing.
+    localStorage.setItem(key, value);
+    // HTML thing.
+    let element = document.getElementById(key);
+    if ( element ) {
+        if ( typeof value === 'boolean' ) {
+            value = value.toString();
+        }
+        element.innerText = value;
+    }
+}
+
+/**
+ * @param key {string}
+ * @returns {boolean}
+ */
+function hasSetting( key ) {
+    return localStorage.getItem(key) !== null;
+}
+
+function refreshSettingDisplay(){
+    for (let key in DEFAULTS){
+        let value = localStorage.getItem(key);
+        let element = document.getElementById(key);
+        if ( element ) {
+            if ( typeof value === 'boolean' ) {
+                value = value.toString();
+            }
+            element.innerText = value;
+        }
+    }
 }
