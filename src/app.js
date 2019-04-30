@@ -67,6 +67,10 @@ const REFRESH_KEY = "REFRESH";
  */
 const SETTINGS_KEY = "SETTINGS";
 /**
+ * @type {string}
+ */
+const DEBUG_KEY = "DEBUG";
+/**
  *
  * @type {{REFRESH: boolean, TIMELORD_PORT: number}}
  */
@@ -74,11 +78,12 @@ const DEFAULTS = {
     "TIMELORD_PORT": 800,
     "REFRESH"      : false,
     "TIMELORD_IP"  : "127.0.0.1",
+    "DEBUG"        : false,
 };
 init();
-// window.sock = sock = new WebSocket('ws://' + localStorage.getItem(TIMELORD_IP_KEY) + ':' + localStorage.getItem(TIMELORD_PORT_KEY));
-// window.sock.onmessage = handleMessage;
-// window.sock.onerror = reload;
+window.sock = sock = new WebSocket('ws://' + localStorage.getItem(TIMELORD_IP_KEY) + ':' + localStorage.getItem(TIMELORD_PORT_KEY));
+window.sock.onmessage = handleMessage;
+window.sock.onerror = reload;
 
 /**
  * Creates the heart.
@@ -133,6 +138,9 @@ function parseMessage( messageData ) {
     currentDuration = messageObject.currentDuration;
     currentMS = messageObject.currentMS;
     currentFPS = messageObject.currentFPS;
+    if(localStorage.getItem(DEBUG_KEY)){
+        debugMessage(messageObject);
+    }
     return messageObject;
 
 }
@@ -174,20 +182,28 @@ function syncClock() {
     setClock(current);
 }
 
+/**
+ * Hooks Heart to do functions on specific intervals of the heartbeat.
+ */
 function startTimer() {
     heart.createEvent(1, {name: EVENT_NAME}, interval);
     heart.createEvent(10, {name: PROGRESS_EVENT_NAME}, progressInterval);
 }
 
+/**
+ * Standard timer interval.
+ */
 function interval() {
     currentMS = currentMS + CLOCK_HEARTRATE;
     current.set(MSToTimecode(currentMS + currentOffset, currentFPS));
     setClock(current);
 }
 
+/**
+ * Progress bar interval.
+ */
 function progressInterval() {
     setProgress(currentMS, currentDuration);
-
 }
 
 /**
@@ -242,19 +258,17 @@ function setProgress( currentTimer, trackDuration ) {
 function setDefaults() {
     let localSettings = defaults(filter({
         "TIMELORD_IP": window.location.hostname
-    }),DEFAULTS);
-    for (const key in localSettings){
-        if(!hasSetting(key)){
+    }), DEFAULTS);
+    for ( const key in localSettings ) {
+        if ( !hasSetting(key) ) {
             saveSetting(key, localSettings[key]);
         }
     }
-    // if(!hasSetting(SETTINGS_KEY)){
-    //     saveSetting(SETTINGS_KEY, localSettings);
-    // }
     refreshSettingDisplay();
 }
 
 /**
+ * Save setting into localStorage, update where user sees current setting.
  * @param key {string}
  * @param value {string|number|boolean}
  */
@@ -272,6 +286,8 @@ function saveSetting( key, value ) {
 }
 
 /**
+ * Check setting exists within localStorage.
+ *
  * @param key {string}
  * @returns {boolean}
  */
@@ -279,8 +295,11 @@ function hasSetting( key ) {
     return localStorage.getItem(key) !== null;
 }
 
-function refreshSettingDisplay(){
-    for (let key in DEFAULTS){
+/**
+ * Refreshes each of the user-facing settings.
+ */
+function refreshSettingDisplay() {
+    for ( let key in DEFAULTS ) {
         let value = localStorage.getItem(key);
         let element = document.getElementById(key);
         if ( element ) {
@@ -290,4 +309,15 @@ function refreshSettingDisplay(){
             element.innerText = value;
         }
     }
+}
+
+/**
+ * Shows the debugMessage.
+ *
+ * @param message {{currentOffset: number, currentFPS: number, currentDuration: number, currentVolume: number, currentFade: number, state: number, currentMS: number, cueNumber: number}}
+ */
+function debugMessage(message){
+    let debugElement = document.getElementById('debug-content');
+    debugElement.style.display = "block";
+    debugElement.innerText = JSON.stringify(message);
 }
